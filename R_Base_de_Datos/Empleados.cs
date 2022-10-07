@@ -11,6 +11,9 @@ namespace R_Base_de_Datos
         private string nombre;
         private string dui;
         private double salario;
+        private double afp;
+        private double isss;
+        private double neto;
 
         public string Nombre
         {
@@ -28,6 +31,24 @@ namespace R_Base_de_Datos
             set { salario = value; }
         }
 
+        public double Afp
+        {
+            get { return afp; }
+            set { afp = value; }
+        }
+
+        public double Isss
+        {
+            get { return isss; }
+            set { isss = value; }
+        }
+
+        public double Neto
+        {
+            get { return neto; }
+            set { neto = value; }
+        }
+
         public double AFP(double Salario)
         {
             double CalcAFP = Salario * 0.0625;
@@ -38,7 +59,7 @@ namespace R_Base_de_Datos
             double CalcISSS = Salario * 3 / 100;
             return CalcISSS;
         }
-        public double Neto(double Salario)
+        public double NETO(double Salario)
         {
             double CalcAFP = Salario * 0.0625;
             double CalcISSS = Salario * 3 / 100;

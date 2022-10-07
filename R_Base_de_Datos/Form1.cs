@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Data.SqlClient;
+using System.Data.Sql;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -25,7 +26,9 @@ namespace R_Base_de_Datos
 
         }
 
-        private void btGuardar_Click(object sender, EventArgs e)
+        
+
+        private void btInsertar_Click(object sender, EventArgs e)
         {
             if (txtNombre.Text == "")
             {
@@ -60,20 +63,17 @@ namespace R_Base_de_Datos
             Empleado.Nombre = txtNombre.Text;
             Empleado.Dui = txtDUI.Text;
             Empleado.Salario = Convert.ToDouble(txtSalario.Text);
-            txtAFP.Text = Empleado.AFP(Empleado.Salario).ToString();
-            txtISSS.Text = Empleado.ISSS(Empleado.Salario).ToString();
-            txtNeto.Text = Empleado.Neto(Empleado.Salario).ToString();
-        }
+            Empleado.Afp = Empleado.AFP(Empleado.Salario);
+            txtAFP.Text = Empleado.Afp.ToString();
+            Empleado.Isss = Empleado.ISSS(Empleado.Salario);
+            txtISSS.Text = Empleado.Isss.ToString();
+            Empleado.Neto = Empleado.NETO(Empleado.Salario);
+            txtNeto.Text = Empleado.Neto.ToString();
+            labelAregistro.Text = "Registro guardado en la clase";
 
-        private void btInsertar_Click(object sender, EventArgs e)
-        {
             SqlConnection conexion = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\Planilla.mdf;Integrated Security=True;Connect Timeout=30");
             conexion.Open();
-            string nombre = txtNombre.Text;
-            string dui = txtDUI.Text;
-            string salario = txtSalario.Text;
-            string afp = txtAFP.Text;
-            string cadena = "insert into [Empleados] (Nombre, DUI, Salario, AFP) values ('" + nombre + "','" + dui + "','" + salario + "','" + afp + "')";
+            string cadena = "insert into [Empleados] (Nombre, DUI, Salario, AFP, ISSS, NETO) values ('" + Empleado.Nombre + "','" + Empleado.Dui + "','" + Empleado.Salario + "','" + Empleado.Afp + "','" + Empleado.Isss + "','" + Empleado.Neto + "')";
             SqlCommand comando = new SqlCommand(cadena, conexion);
             comando.ExecuteNonQuery();
             MessageBox.Show("Los datos se guardaron correctamente");
@@ -87,15 +87,31 @@ namespace R_Base_de_Datos
         {
             SqlConnection conexion = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\Planilla.mdf;Integrated Security=True;Connect Timeout=30");
             conexion.Open();
-            string cod = txtConsulta.Text;
-            string cadena = "select nombre, dui from Empleados where Id=" + cod;
+
+            Int32 cod;
+
+            if (!Int32.TryParse(txtConsulta.Text, out cod))
+            {
+                errorProvider1.SetError(txtConsulta, "No ingresó la consulta");
+                txtConsulta.Focus();
+                return;
+            }
+
+            errorProvider1.SetError(txtConsulta, "");
+
+            string cadena = "select id, nombre, dui, salario, afp, isss, neto from Empleados where Id=" + cod;
             SqlCommand comando = new SqlCommand(cadena, conexion);
-            
-                SqlDataReader registro = comando.ExecuteReader();
+            SqlDataReader registro = comando.ExecuteReader();
+
                 if (registro.Read())
                 {
-                    labelRnombre.Text = registro["Nombre"].ToString();
-                    labelRdui.Text = registro["DUI"].ToString();
+                    dataGridView1.Rows[0].Cells[0].Value = registro.GetInt32(0);
+                    dataGridView1.Rows[0].Cells[1].Value = registro.GetString(1);
+                    dataGridView1.Rows[0].Cells[2].Value = registro.GetString(2);
+                    dataGridView1.Rows[0].Cells[3].Value = registro.GetDecimal(3);
+                    dataGridView1.Rows[0].Cells[4].Value = registro.GetDecimal(4);
+                    dataGridView1.Rows[0].Cells[5].Value = registro.GetDecimal(5);
+                    dataGridView1.Rows[0].Cells[6].Value = registro.GetDecimal(6);
                 }
                 else
                     MessageBox.Show("No existe un Empleado con el código ingresado");
@@ -113,9 +129,101 @@ namespace R_Base_de_Datos
             txtISSS.Clear();
             txtNeto.Clear();
             txtConsulta.Clear();
-            labelRnombre.Text = "";
-            labelRdui.Text = "";
         }
 
+
+        private void btModificar_Click(object sender, EventArgs e)
+        {
+            SqlConnection conexion = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\Planilla.mdf;Integrated Security=True;Connect Timeout=30");
+            conexion.Open();
+
+            try
+            {
+
+
+                string cod = dataGridView1.CurrentRow.Cells[0].Value.ToString();
+
+                string Dnombre = dataGridView1.CurrentRow.Cells[1].Value.ToString();
+                string Ddui = dataGridView1.CurrentRow.Cells[2].Value.ToString();
+                string Dsalario = dataGridView1.CurrentRow.Cells[3].Value.ToString();
+                string DAFP = dataGridView1.CurrentRow.Cells[4].Value.ToString();
+                string DISSS = dataGridView1.CurrentRow.Cells[5].Value.ToString();
+                string DNeto = dataGridView1.CurrentRow.Cells[6].Value.ToString();
+                string cadena = "update [Empleados] set nombre='" + Dnombre + "', dui='" + Ddui + "', salario='" + Dsalario + "', afp='" + DAFP + "', isss='" + DISSS + "', neto='" + DNeto + "' where Id=" + cod;
+                SqlCommand comando = new SqlCommand(cadena, conexion);
+                int cant;
+                cant = comando.ExecuteNonQuery();
+                if (cant == 1)
+                {
+                    this.dataGridView1.DataSource = null;
+                    this.dataGridView1.Rows.Clear();
+                    MessageBox.Show("Se modificaron los datos del empleado");
+                }
+            }
+            catch (Exception) { MessageBox.Show("No seleccionó el empleado"); }
+            conexion.Close();
+        }
+
+        private void btVerTodo_Click(object sender, EventArgs e)
+        {
+            SqlConnection conexion = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\Planilla.mdf;Integrated Security=True;Connect Timeout=30");
+            conexion.Open();
+
+            string cadena = "select id, nombre, dui, salario, afp, isss, neto from Empleados";
+            SqlCommand comando = new SqlCommand(cadena, conexion);
+            SqlDataReader registro = comando.ExecuteReader();
+            this.dataGridView1.DataSource = null;
+            this.dataGridView1.Rows.Clear();
+            if (registro.HasRows)
+            {
+                while (registro.Read())
+                {
+                    int n = dataGridView1.Rows.Add();
+
+                    dataGridView1.Rows[n].Cells[0].Value = registro.GetInt32(0);
+                    dataGridView1.Rows[n].Cells[1].Value = registro.GetString(1);
+                    dataGridView1.Rows[n].Cells[2].Value = registro.GetString(2);
+                    dataGridView1.Rows[n].Cells[3].Value = registro.GetDecimal(3);
+                    dataGridView1.Rows[n].Cells[4].Value = registro.GetDecimal(4);
+                    dataGridView1.Rows[n].Cells[5].Value = registro.GetDecimal(5);
+                    dataGridView1.Rows[n].Cells[6].Value = registro.GetDecimal(6);
+                }
+            }
+            else
+                MessageBox.Show("No existen un registros");
+            conexion.Close();
+
+        }
+
+        private void btEliminar_Click(object sender, EventArgs e)
+        {
+            {
+                SqlConnection conexion = new SqlConnection(@"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\Planilla.mdf;Integrated Security=True;Connect Timeout=30");
+                conexion.Open();
+                try
+                {
+                    string cod = dataGridView1.CurrentRow.Cells[0].Value.ToString();
+
+                    string cadena = "delete from [Empleados] where Id=" + cod;
+                    SqlCommand comando = new SqlCommand(cadena, conexion);
+
+
+                    int cant;
+                    cant = comando.ExecuteNonQuery();
+                    if (cant == 1)
+                    {
+                        this.dataGridView1.DataSource = null;
+                        this.dataGridView1.Rows.Clear();
+                        MessageBox.Show("Se borró el registro");
+                    }
+
+
+                }
+                catch (Exception) { MessageBox.Show("Debe seleccionar un registro"); }
+                conexion.Close();
+
+            }
+
+        }
     }
 }
